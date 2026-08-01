@@ -1,89 +1,89 @@
-import dotenv from "dotenv";
-dotenv.config();
-
 import Groq from "groq-sdk";
+
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-const SYSTEM_PROMPT = `
+export async function askAI(messages, fileText = "") {
+  try {
+    console.log("====================================");
+    console.log("AI SERVICE STARTED");
+    console.log("====================================");
+
+    console.log("Using Model: llama-3.3-70b-versatile");
+
+    let conversation = [
+      {
+        role: "system",
+        content: `
 You are VoiceMentor AI.
 
 You are a professional English Speaking Coach.
 
 Your responsibilities:
+- Correct grammar politely.
+- Explain mistakes simply.
+- Improve vocabulary.
+- Help with pronunciation.
+- Conduct interview practice.
+- Teach spoken English naturally.
+- Continue conversations naturally.
 
-• Correct grammar politely.
-• Explain mistakes simply.
-• Improve vocabulary.
-• Help with pronunciation.
-• Conduct interview practice.
-• Teach spoken English naturally.
-• Continue the conversation naturally.
-
-IMPORTANT RULES
-
-1. If uploaded document text is provided, ALWAYS use it.
-
-2. Never say:
-"I cannot see the image."
-
-3. If OCR text is provided, assume it came from the uploaded image.
-
-4. Answer using ONLY the OCR/document text.
-
-5. If OCR extracted no text, politely say:
-
-"I couldn't detect readable text in the uploaded image. Please upload a clearer image or an image containing text."
-
-6. Keep answers friendly.
-
-7. Keep replies below 150 words.
-
-8. End with one follow-up question.
-`;
-
-export async function askAI(messages, fileText = "") {
-  try {
-    const finalMessages = [
-      {
-        role: "system",
-        content: SYSTEM_PROMPT,
+Rules:
+1. If uploaded document text exists, always use it.
+2. Never say "I cannot see the image."
+3. If OCR text exists, assume it came from the uploaded image.
+4. Keep replies under 150 words.
+5. End every reply with one follow-up question.
+`,
       },
     ];
 
-    // Add OCR / PDF / DOCX text
-    if (fileText && fileText.trim() !== "") {
-      finalMessages.push({
+    if (fileText) {
+      conversation.push({
         role: "system",
-        content: `
-The following text was extracted from the user's uploaded file.
-
-=========================
-${fileText}
-=========================
-
-Use this extracted content when answering.
-Do NOT say you cannot see the image.
-`,
+        content: fileText,
       });
     }
 
-    finalMessages.push(...messages);
+    conversation.push(...messages);
 
-    const response = await groq.chat.completions.create({
+    console.log("Sending request to Groq...");
+
+    const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
-      messages: finalMessages,
+      messages: conversation,
       temperature: 0.7,
-      max_tokens: 700,
+      max_tokens: 1024,
     });
 
-    return response.choices[0].message.content;
+    console.log("Groq Response Received");
 
+    return completion.choices[0].message.content;
   } catch (error) {
-    console.error("Groq Error:", error);
+    console.error("====================================");
+    console.error("GROQ ERROR");
+    console.error("====================================");
 
-    return "Sorry, I couldn't process your request right now.";
+    console.error(error);
+
+    if (error.status) {
+      console.error("Status:", error.status);
+    }
+
+    if (error.message) {
+      console.error("Message:", error.message);
+    }
+
+    if (error.response) {
+      console.error("Response:");
+      console.error(error.response.data);
+    }
+
+    throw error;
   }
 }

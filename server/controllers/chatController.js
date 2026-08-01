@@ -8,12 +8,11 @@ import { readDOCX } from "../services/docxService.js";
 import { readImage } from "../services/imageService.js";
 import { extractTextFromImage } from "../services/ocrService.js";
 
-
 export const chatWithAI = async (req, res) => {
   try {
-    // =============================
-    // Read Messages
-    // =============================
+    console.log("====================================");
+    console.log("🚀 NEW CHAT REQUEST");
+    console.log("====================================");
 
     let messages = req.body.messages;
 
@@ -24,16 +23,18 @@ export const chatWithAI = async (req, res) => {
       });
     }
 
-    // FormData sends messages as string
     if (typeof messages === "string") {
       messages = JSON.parse(messages);
     }
 
+    console.log("Messages:");
+    console.log(messages);
+
     let fileText = "";
 
-    // =============================
-    // File Upload
-    // =============================
+    // ==========================
+    // Handle Uploaded File
+    // ==========================
 
     if (req.file) {
       const filePath = req.file.path;
@@ -44,10 +45,7 @@ export const chatWithAI = async (req, res) => {
 
       console.log("Uploaded File:", req.file.originalname);
 
-      // -----------------------------
       // PDF
-      // -----------------------------
-
       if (extension === ".pdf") {
         const pdf = await readPDF(filePath);
 
@@ -62,16 +60,13 @@ ${pdf.text}
         }
       }
 
-      // -----------------------------
       // DOCX
-      // -----------------------------
-
       else if (extension === ".docx") {
         const doc = await readDOCX(filePath);
 
         if (doc.success) {
           fileText = `
-The user uploaded a DOCX document.
+The user uploaded a DOCX.
 
 Document Content:
 
@@ -80,10 +75,7 @@ ${doc.text}
         }
       }
 
-      // -----------------------------
       // IMAGE
-      // -----------------------------
-
       else if (
         extension === ".jpg" ||
         extension === ".jpeg" ||
@@ -99,7 +91,7 @@ ${doc.text}
             fileText = `
 The user uploaded an image.
 
-OCR Extracted Text:
+OCR Text:
 
 ${ocr.text}
 `;
@@ -107,15 +99,11 @@ ${ocr.text}
             fileText = `
 The user uploaded an image.
 
-No readable text was found in the image.
+No readable text found.
 `;
           }
         }
       }
-
-      // -----------------------------
-      // Delete uploaded file
-      // -----------------------------
 
       try {
         fs.unlinkSync(filePath);
@@ -124,19 +112,22 @@ No readable text was found in the image.
       }
     }
 
-    // =============================
-    // Ask Groq
-    // =============================
+    console.log("Calling AI Service...");
 
     const reply = await askAI(messages, fileText);
+
+    console.log("AI Reply:");
+    console.log(reply);
 
     return res.json({
       success: true,
       reply,
     });
-
   } catch (error) {
-    console.error("Chat Controller Error:", error);
+    console.error("====================================");
+    console.error("CHAT CONTROLLER ERROR");
+    console.error(error);
+    console.error("====================================");
 
     return res.status(500).json({
       success: false,
