@@ -14,7 +14,7 @@ export async function askAI(messages, fileText = "") {
     console.log("AI SERVICE STARTED");
     console.log("====================================");
 
-    console.log("Using Model: llama-3.3-70b-versatile");
+    console.log("Using Model: openai/gpt-oss-20b");
 
     let conversation = [
       {
@@ -55,7 +55,7 @@ Rules:
     console.log("Sending request to Groq...");
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-20b",
       messages: conversation,
       temperature: 0.7,
       max_tokens: 1024,
